@@ -1,0 +1,51 @@
+import pandas as pd
+
+# Load the data
+avocado = pd.read_csv('data/avocado.csv', sep='\t')
+
+# Keep only relevant columns
+relevant_columns = ['code', 'lc', 'product_name_en', 'quantity', 'serving_size', 'packaging_tags', 'brands', 'brands_tags', 'categories_tags', 'labels_tags','countries', 'countries_tags', 'origins', 'origins_tags']
+
+avocado = avocado[relevant_columns]
+
+# Helper function to clean origin names
+def clean_origin(origin):
+    if pd.isna(origin):
+        return None
+    # Keep only letters and spaces
+    cleaned = re.sub(r'[^A-Za-z ]+', '', origin)
+    return cleaned.strip()
+
+def get_top_origin(csv_file, txt_file):
+    # Load product data
+    df = pd.read_csv(csv_file, sep='\t')
+    
+    # Filter for United Kingdom
+    df = df[df['countries_tags'].astype(str).str.contains('united-kingdom', case=False, na=False)]
+
+    # Load relevant categories
+    with open(txt_file, 'r') as file:
+        relevant_cats = [line.strip() for line in file.readlines()]
+    
+    # Filter by relevant category tags
+    df['categories_tags'] = df['categories_tags'].astype(str)
+    df_filtered = df[df['categories_tags'].apply(lambda x: any(cat in x for cat in relevant_cats))]
+
+    # Clean and count origins
+    df_filtered['cleaned_origin'] = df_filtered['origins'].dropna().apply(clean_origin)
+    top_origin = df_filtered['cleaned_origin'].value_counts().idxmax()
+    return top_origin
+
+# Load the data for each product
+avocado_df = pd.read_csv('data/avocado.csv', sep='\t')
+olive_oil_df = pd.read_csv('data/olive_oil.csv', sep='\t')
+sourdough_df = pd.read_csv('data/sourdough.csv', sep='\t')
+
+top_avocado_origin = get_top_origin('data/avocado.csv', 'data/relevant_avocado_categories.txt')
+top_olive_oil_origin = get_top_origin('data/olive_oil.csv', 'data/relevant_olive_oil_categories.txt')
+top_sourdough_origin = get_top_origin('data/sourdough.csv', 'data/relevant_sourdough_categories.txt')
+
+# Print results
+print("Top Avocado Origin:", top_avocado_origin)
+print("Top Olive Oil Origin:", top_olive_oil_origin)
+print("Top Sourdough Origin:", top_sourdough_origin)
